@@ -2,4 +2,4 @@
 *.aux
 *.pdf
 *.out
-*.synctex
+*.synctex.gz
