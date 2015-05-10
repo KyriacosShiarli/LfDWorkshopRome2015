@@ -3,3 +3,6 @@
 *.pdf
 *.out
 *.synctex.gz
+*.bbl
+*.blg
+
