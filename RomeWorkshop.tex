@@ -14,6 +14,8 @@
 \usepackage{multicol}
 \usepackage[bookmarks=true]{hyperref}
 
+\newcommand{\sw}[1]{\textcolor{red}{SW: #1}}
+
 \pdfinfo{
    /Author (Homer Simpson)
    /Title  (Robots: Our new overlords)
@@ -80,54 +82,63 @@ traditional IRL, we present a method that can utilise information from failed or
 \IEEEpeerreviewmaketitle
 
 \section{Introduction}
-In Inverse Reinforcement Learning (IRL) \cite{ng2000algorithms}, an \emph{apprentice} aims to learn a policy for acting in an environment modelled by a Markov Decision Process (MDP) for which the reward function is not available but samples from the policy of an \emph{expert} performing the task are given instead. An IRL algorithm tries to find a reward function that allows the apprentice to exhibit behaviour  that is similar to the expert's and generalises well to situations for which data is not available. The IRL formulation is particularly appealing in MDPs for which the actual reward function is difficult to define explicitly, but examples of correct behaviour can be generated instead. For this exact reason the main applications of the method have been in simulated car driving[] and socially appropriate navigation\cite{henry2010learning,vasquez2014inverse}. Existing IRL methods leverage concepts from the wider Machine Learning community, like maximum entropy \cite{ziebart2008maximum} and Bayesian formulations \cite{ramachandran2007bayesian}, structured classification \cite{ratliff2006maximum}, boosting \cite{ratliff2007boosting} and Gaussian processes \cite{levine2011nonlinear}.
+In Inverse Reinforcement Learning (IRL) \cite{ng2000algorithms}, an \emph{apprentice} aims to learn a policy for acting in an environment modelled by a Markov Decision Process (MDP) for which the reward function is not available but samples from the policy of an \emph{expert} performing the task are given instead. An IRL algorithm tries to find a reward function that allows the apprentice to exhibit behaviour  that is similar to the expert's and generalises well to situations for which data is not available. The IRL formulation is particularly appealing in MDPs for which the actual reward function is difficult to define explicitly, but examples of correct behaviour can be generated instead. For this exact reason the main applications of the method have been in simulated car driving [] and socially appropriate navigation \cite{henry2010learning,vasquez2014inverse}. Existing IRL methods leverage concepts from the wider Machine Learning community, like maximum entropy \cite{ziebart2008maximum} and Bayesian formulations \cite{ramachandran2007bayesian}, structured classification \cite{ratliff2006maximum}, boosting \cite{ratliff2007boosting} and Gaussian processes \cite{levine2011nonlinear}.
 
-Existing IRL algorithms learn only from succesful trajectories, i.e., data gathered by an expert performing the task well.  This is a consequence of a key motivation for IRL, that it allows learning tasks in which it is too dangerous for a learning agent to explore.
+Existing IRL algorithms learn only from succesful trajectories, i.e., data gathered by an expert performing the task well.  This is a consequence of a key motivation for IRL, that it allows learning tasks in which it is too dangerous for a learning agent to explore.  For example, since it is not safe to let a learning agent fly (and probably crash) a helicopter while it is learning, data is gathered by an expert pilot whom the agent then learns to mimic. 
+
+However, in many realistic scenarios, failed trajectories are also readily available.  Consider for example tasks such as driving a car.  Since humans also learn this task by trial and error, both successful and failed trajectories are available.  Although hand-coding a reward function for this task would be infeasibily difficult, labelling each trajectory as succesful or failed is straightforward.  
+
+In this paper, we present the first IRL algorithm that can learn from both successful and failed trajectories.  In doing so, we address a key difficulty in IRL: the problem is typically underconstrained since many reward functions are consistent with the expert's behavior.  By making use of failed trajectories, our method reduces this ambiguity, resulting in faster and better learning.
+
+To derive an IRL algorithm for learning from failure, we start from the state-of-the-art method of Maximum Causal Entropy Inverse Reinforcement Learning \cite{ziebart2008maximum}.  This approach starts by formulating a constrained optimization problem that seeks a reward function yielding trajectories consistent with those of the expert.  We formulate a new constrained optimization problem with additional constraints that require the resulting trajectories to also be maximally different from the failed trajectories.  Then, by appliying the method of Lagrangian multipliers, we produce our new method, which learns from both succesful and failed trajectories.
+
+Our empirical results...
 
 
-Despite its appealing applications and encouraging research the IRL framework still suffers from a number of important theoretical and practical drawbacks. Firstly, because of their iterative nature most known methods require solving an MDP under the current reward before an update. For large state spaces, Markov decision processes becomes prohibitive to evaluate once, let alone a number of times. Secondly, most algorithms are non-convex in nature especially if the dynamics of the system are non-deterministic and ill posed how do I make the differentiation? More practical issues include generalisation, if the observed expert's behaviour is too limited, it is very hard to generalise to new parts of the state space, especially if this is too large. In addition, since the expert can be expected to avoid punishing states, information about the reward in these states reaches us only implicitly, making generalisation of the reward function an even harder task. \\
+% Despite its appealing applications and encouraging research the IRL framework still suffers from a number of important theoretical and practical drawbacks. Firstly, because of their iterative nature most known methods require solving an MDP under the current reward before an update. For large state spaces, Markov decision processes becomes prohibitive to evaluate once, let alone a number of times. Secondly, most algorithms are non-convex in nature especially if the dynamics of the system are non-deterministic and ill posed how do I make the differentiation? More practical issues include generalisation, if the observed expert's behaviour is too limited, it is very hard to generalise to new parts of the state space, especially if this is too large. In addition, since the expert can be expected to avoid punishing states, information about the reward in these states reaches us only implicitly, making generalisation of the reward function an even harder task. \\
 
-We present the first step towards allowing IRL algorithms to leverage a wider variety of data to learn faster and generalise better. Specifically we consider the case where appart from
-an Expert dataset we have access to a dataset of behaviour that should be avoided at all costs. Our algorithm tries to approach the expert behaviour at while avoiding the failed trajectories.
+% We present the first step towards allowing IRL algorithms to leverage a wider variety of data to learn faster and generalise better. Specifically we consider the case where appart from
+% an Expert dataset we have access to a dataset of behaviour that should be avoided at all costs. Our algorithm tries to approach the expert behaviour at while avoiding the failed trajectories.
 
-This altered view of IRL emerges from the basic principle that governs most IRL algorithms. Because the observed data is assumed to be coming from an Expert, IRL tries to make the value of the observed trajectories optimal by tweeking the reward function in an intelligent way, most commonly by gradient (or subgradient) descent. We can imagine however that we observe a certain trajectory in the state space and we have access to an annotator that can tell us to what \emph{degree} the observe behaviour is optimal. If for example we observe the worst possible behaviour, then we can possibly demand from our algorithm to \emph{minimise} value for those trajectories when generated by the apprentice. Importanly, this view preserves the main motivation for IRL which is that the reward function for each state-action pair need not be hardcoded, while \emph{extending} the scope from which demonstrations can be considered useful to learning. In addition, by exploiting the information contained within, for example, failed trajectories, we gain access to more explicit information about the nature of the reward at certain areas of the state-space that the expert could only implicitly provide. This provides additional constraints to combat the aforementioned illposition of IRL and allow's us to build reward functions that are more likely to generalise to unseen situations. Finally such a framework would allow the designer to inject prior knowledge into the learning process in a principled manner, without the need for complex prior distributions and extra computational cost. If we are previously aware of parts of the state-space that should have a very negative reward, we can (assuming the dynamics are known) simulate data of the agent acting in an environment where large rewards are given for reaching unwanted states. Feeding our generated data along with that of the expert into our extended IRL algorithm would allow the apprentice to imitate the expert while learning a reward function that takes into account our domain knowledge.
+% This altered view of IRL emerges from the basic principle that governs most IRL algorithms. Because the observed data is assumed to be coming from an Expert, IRL tries to make the value of the observed trajectories optimal by tweeking the reward function in an intelligent way, most commonly by gradient (or subgradient) descent. We can imagine however that we observe a certain trajectory in the state space and we have access to an annotator that can tell us to what \emph{degree} the observe behaviour is optimal. If for example we observe the worst possible behaviour, then we can possibly demand from our algorithm to \emph{minimise} value for those trajectories when generated by the apprentice. Importanly, this view preserves the main motivation for IRL which is that the reward function for each state-action pair need not be hardcoded, while \emph{extending} the scope from which demonstrations can be considered useful to learning. In addition, by exploiting the information contained within, for example, failed trajectories, we gain access to more explicit information about the nature of the reward at certain areas of the state-space that the expert could only implicitly provide. This provides additional constraints to combat the aforementioned illposition of IRL and allow's us to build reward functions that are more likely to generalise to unseen situations. Finally such a framework would allow the designer to inject prior knowledge into the learning process in a principled manner, without the need for complex prior distributions and extra computational cost. If we are previously aware of parts of the state-space that should have a very negative reward, we can (assuming the dynamics are known) simulate data of the agent acting in an environment where large rewards are given for reaching unwanted states. Feeding our generated data along with that of the expert into our extended IRL algorithm would allow the apprentice to imitate the expert while learning a reward function that takes into account our domain knowledge.
 
 
 
-\section{Method Outline}
+\section{Method}
 	In his PhD thesis Ziebart after introducing the principle of Maximum Causal Entropy he applies it to generalised Inverse Optimal Control(IOC) and IRL by assuming an agent acting in an MDP. The model is very powerful, easy to apply and results in a convex optimisation problem. In its heart, the algorithm tries to find the stochastic policy $\pi(a|s)$ that maximises the causal entropy of an influence model of a certain time duration $T$ while constrained to match certain statistics from the expert dataset $\mathcal{D}$. These statistics are called the empirical feature expectations $\widetilde{\Phi}_{\mathcal{D}}$. The optimisation is solved using Lagrangian multipliers and results in a procedure very similar to most IRL methods. A policy
-	is found under the current reward function using a 'soft' version of the Bellman equations, the feature expectations of the model are then calculated from the initial  states in the data, and finally a reward update step based on the comparison between the empirical and model feature expectations.\\
+	is found under the current reward function using a 'soft' version of the Bellman equations, the feature expectations of the model are then calculated from the initial  states in the data, and finally a reward update step based on the comparison between the empirical and model feature expectations.
+
 	Our method directly modifies this optimization process in two significant ways. Firstly using a set of slacks we call $\zeta^+$ and $\zeta^-$ we relax the feature matching constraint between the emodel and the expert data. Instead we demand that the value of these slacks is minimised. Secondly we intoduce a second set of constraints that aim to create disimilarity between the model feature expecations and those of a dataset of failed demonstrations $\widetilde{\Phi}_{\mathcal{D}_b}$. This is done through a second set of slacks $\alpha^+$ and $\alpha^-$ that we aim to \emph{maximise}. These modifications results in the following optimisation problem.
 	
-	\begin{equation}
+	\begin{equation*}
 	\argmax_{\pi(a,s),\alpha^+_k ,\alpha^-_k ,\zeta^+_k, \zeta^-_k} H(\mathbf{A}^T||\mathbf{S}^T) - \sum_k\big(C(\zeta^+_k + \zeta^-_k)  -D(\alpha^+_k  \alpha^-_k)\big)
-\end{equation}
-\begin{equation}
+\end{equation*}
+\begin{equation*}
 	\widetilde{\Phi}_{\mathcal{D},k}-\Phi_{\pi,s_0,k}   = \zeta^+_k  - \zeta^-_k \quad \forall k \label{eq:good_ineq}
-\end{equation}
-\begin{equation}
+\end{equation*}
+\begin{equation*}
 	\widetilde{\Phi}_{\mathcal{D}_b,k}-\Phi_{\pi,s_0,k}  = \alpha^+_k-\alpha^-_k \quad \forall k \label{eq:bad_ineq}
-\end{equation}
-\begin{equation}
+\end{equation*}
+\begin{equation*}
 	-\zeta^+_k \leq 0 \quad \text{and} \quad -\zeta^-_k \leq 0 \quad \forall k
-\end{equation}
-\begin{equation}
+\end{equation*}
+\begin{equation*}
 	-\alpha^+_k \leq 0 \quad \text{and} \quad -\alpha^-_k \leq 0 \quad \forall k
-\end{equation}
-\begin{equation}
+\end{equation*}
+\begin{equation*}
 	\alpha^-_k \alpha^+_k = 0 \quad \forall k  \label{eq:quadratic}
-\end{equation}
-\begin{equation}
+\end{equation*}
+\begin{equation*}
 	\text{and:   }\sum_aP(a|s)  = 1 \quad \forall s  
-\end{equation}
-\begin{equation}
+\end{equation*}
+\begin{equation*}
 	\text{and:   }P(a|s)  > 0 \quad \forall s,a  
-\end{equation}
+\end{equation*}
 
 
-\section{Experiments and Results}
+\section{Results \& Discussion}
 We perform experiments on "moving obstacle gridworld". In much the same spirit as the original toy problem an agent tries to reach a target square (T) of very high reward,
-while avoiding some squares of negative reward(N). The only difference is that the (N)  squares are moving in different directions at every time step. This was done to closer simulate robotic navigation towards a target while avoiding a moving person. For proof-of-concept purposes the test problem is fully deterministic. We demonstrate the performance of our method by directly comparing it to the original algorithm as described by Ziebart. \\
+while avoiding some squares of negative reward(N). The only difference is that the (N)  squares are moving in different directions at every time step. This was done to closer simulate robotic navigation towards a target while avoiding a moving person. For proof-of-concept purposes the test problem is fully deterministic. We demonstrate the performance of our method by directly comparing it to the original algorithm as described by Ziebart.
 %
 %To begin comparison between the two methods we first need some synthetic data from the problem, or at least the two quantities $\widetilde{\Phi}_{\mathcal{D},k}$ and $\widetilde{\Phi}_{\mathcal{D}_b,k}$ for the good and bad datasets repsectively. These can be generated very easily using the forward algorithm also given by Ziebart, using a policy P(a|s), model dynamics and an initial state distribution $b_{0,train}$. The policies in turn arise from two reward functions $R_e$ for the expert and $R_t$ for the taboo-agent. 
 
@@ -162,7 +173,6 @@ Firstly we generate synthetic feature expectations $\widetilde{\Phi}_{\mathcal{D
 
 These results demonstrate that taking into account failed demonstrations of a task will allow the apprentice to generalise better to new initial states and learn in fewer iterations than previously possible.
 
-\section{Conclusions and further work}
 	We have demonstrated the merits of allowing IRL algorithms to go beyond expert demonstrations to demonstrations of varying value. We further demonstrated an instance of such a modified algorithm that can learn better and in fewer iterations than its original counterpart. Our immediate future work involves applying these methods to more realistic scenarios such as simulated and real life robots. Another very interesting direction that we will pursue is how the similarity between the expert and taboo datasets affect the ability to learn. Finally we would like to extend our modifications to other popular IRL algorithms.
 %Proof of concept that failed trajectories contain valuable information for learning in many fronts. 
 %Further work includes:
