@@ -1,6 +1,14 @@
 \documentclass[conference]{IEEEtran}
 \usepackage{times}
 
+\usepackage{amsmath}
+\usepackage{amsopn}
+\DeclareMathOperator*{\argmin}{\arg\!\min} 
+\DeclareMathOperator*{\argmax}{\arg\!\max} 
+
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{subcaption}
 % numbers option provides compact numerical references in the text. 
 \usepackage[numbers]{natbib}
 \usepackage{multicol}
@@ -86,109 +94,168 @@ This altered view of IRL emerges from the basic principle that governs most IRL 
 
 
 \section{Method Outline}
-	\begin{itemize}	
-		\item Our method takes the original Maximum Causal Entropy for Inverse Optimal Control posed by Ziebart[] and rephrases it as follows. Put equation mention constraints of largest importance. also the alphas. 
-		\item Show how you are adding more constraints to the problem.
-		\item Give an outline of how you solve. 
-	\end{itemize}
+	In his PhD thesis Ziebart after introducing the principle of Maximum Causal Entropy he applies it to generalised Inverse Optimal Control(IOC) and IRL by assuming an agent acting in an MDP. The model is very powerful, easy to apply and results in a convex optimisation problem. In its heart, the algorithm tries to find the stochastic policy $\pi(a|s)$ that maximises the causal entropy of an influence model of a certain time duration $T$ while constrained to match certain statistics from the expert dataset $\mathcal{D}$. These statistics are called the empirical feature expectations $\widetilde{\Phi}_{\mathcal{D}}$. The optimisation is solved using Lagrangian multipliers and results in a procedure very similar to most IRL methods. A policy
+	is found under the current reward function using a 'soft' version of the Bellman equations, the feature expectations of the model are then calculated from the initial  states in the data, and finally a reward update step based on the comparison between the empirical and model feature expectations.\\
+	Our method directly modifies this optimization process in two significant ways. Firstly using a set of slacks we call $\zeta^+$ and $\zeta^-$ we relax the feature matching constraint between the emodel and the expert data. Instead we demand that the value of these slacks is minimised. Secondly we intoduce a second set of constraints that aim to create disimilarity between the model feature expecations and those of a dataset of failed demonstrations $\widetilde{\Phi}_{\mathcal{D}_b}$. This is done through a second set of slacks $\alpha^+$ and $\alpha^-$ that we aim to \emph{maximise}. These modifications results in the following optimisation problem.
+	
+	\begin{equation}
+	\argmax_{\pi(a,s),\alpha^+_k ,\alpha^-_k ,\zeta^+_k, \zeta^-_k} H(\mathbf{A}^T||\mathbf{S}^T) - \sum_k\big(C(\zeta^+_k + \zeta^-_k)  -D(\alpha^+_k  \alpha^-_k)\big)
+\end{equation}
+\begin{equation}
+	\widetilde{\Phi}_{\mathcal{D},k}-\Phi_{\pi,s_0,k}   = \zeta^+_k  - \zeta^-_k \quad \forall k \label{eq:good_ineq}
+\end{equation}
+\begin{equation}
+	\widetilde{\Phi}_{\mathcal{D}_b,k}-\Phi_{\pi,s_0,k}  = \alpha^+_k-\alpha^-_k \quad \forall k \label{eq:bad_ineq}
+\end{equation}
+\begin{equation}
+	-\zeta^+_k \leq 0 \quad \text{and} \quad -\zeta^-_k \leq 0 \quad \forall k
+\end{equation}
+\begin{equation}
+	-\alpha^+_k \leq 0 \quad \text{and} \quad -\alpha^-_k \leq 0 \quad \forall k
+\end{equation}
+\begin{equation}
+	\alpha^-_k \alpha^+_k = 0 \quad \forall k  \label{eq:quadratic}
+\end{equation}
+\begin{equation}
+	\text{and:   }\sum_aP(a|s)  = 1 \quad \forall s  
+\end{equation}
+\begin{equation}
+	\text{and:   }P(a|s)  > 0 \quad \forall s,a  
+\end{equation}
 
-\section{Experiments}
-Explain moving obstacle Gridworld. Explain your metrics. Put figures and exlain what they demonstrate.
+
+\section{Experiments and Results}
+We perform experiments on "moving obstacle gridworld". In much the same spirit as the original toy problem an agent tries to reach a target square (T) of very high reward,
+while avoiding some squares of negative reward(N). The only difference is that the (N)  squares are moving in different directions at every time step. This was done to closer simulate robotic navigation towards a target while avoiding a moving person. For proof-of-concept purposes the test problem is fully deterministic. We demonstrate the performance of our method by directly comparing it to the original algorithm as described by Ziebart. \\
+%
+%To begin comparison between the two methods we first need some synthetic data from the problem, or at least the two quantities $\widetilde{\Phi}_{\mathcal{D},k}$ and $\widetilde{\Phi}_{\mathcal{D}_b,k}$ for the good and bad datasets repsectively. These can be generated very easily using the forward algorithm also given by Ziebart, using a policy P(a|s), model dynamics and an initial state distribution $b_{0,train}$. The policies in turn arise from two reward functions $R_e$ for the expert and $R_t$ for the taboo-agent. 
+
+Firstly we generate synthetic feature expectations $\widetilde{\Phi}_{\mathcal{D},k}$ for the expert and $\widetilde{\Phi}_{\mathcal{D}_b,k}$ for the taboo agent as they arise by allowing these agents to start from an initial state distribution $b_{0,train}$ and proceed for $T$ timesteps under their 'soft' optimal policies that result from their respective reward functions $R_e$ and $R_t$. Using this data we train two apprentices, one that only considers data from the expert, using the original algorithm and another that considers both sets of data, using our extended method. The evaluation of the two algorithms is done using a test distribution of initial states $b_{0,test}$ in order to assess the ability of the learned Reward functions to generalise to new initial conditions. The evaluation is done based on three metrics namely:
+
+		We evaluate the toy problem based on three initial criteria:
+			\begin{itemize}
+				\item The value accumulated by the apprentice in T timesteps starting from $b_{0,test}$ when evaluated on the experts reward function, $R_e$. If the apprentice achieves similar Value accumulation as the expert, it means that the trajectories executed by the two agent's are similar.
+
+				\item The value accumulated by the apprentice in N timesteps from a test initial state distribution $b_{0,test}$ when evaluated on the initial taboo agents reward function $R_t$. The less Value is accumulated here, the better since we want to perform badly on the taboo-agents reward function.
+				\end{itemize}
+	
+	Figure \ref{fig:res} demonstrates the results from our experiments. In \ref{fig:res_a} we can see that our algorithm (blue) acumulates as much value as the expert (black line) while the original algorithm (red) does not converge in the given amount of iterations. Turning to \ref{fig:res_b}, the green line represents the value accumulated by the expert based on the taboo agents reward function. We can see that our algorithm can do even worse than the expert on the taboo agents reward while original algorithm doesn't.
+
+\begin{figure}[t]
+  \centering
+  \begin{subfigure}[b]{0.5\textwidth}
+    \includegraphics[scale=0.4]{resa}
+    \caption{Expert Reward Function}
+    \label{fig:res_a}
+  \end{subfigure}
+  \begin{subfigure}[b]{0.5\textwidth}
+    \includegraphics[scale=0.4]{resb.png}
+        \caption{Taboo Reward Function}
+    \label{fig:res_b}
+\end{subfigure}
+  \caption{Results from Moving obstacle gridworld experiments. Our algorithm (blue) surpasses the original (red) in both imitating the expert and not imitating the taboo agent}
+  \label{fig:res}
+\vspace{-4mm}
+\end{figure}
+
+
+These results demonstrate that taking into account failed demonstrations of a task will allow the apprentice to generalise better to new initial states and learn in fewer iterations than previously possible.
 
 \section{Conclusions and further work}
-Proof of concept that failed trajectories contain valuable information for learning in many fronts. 
-Further work includes:
-\begin{itemize}
-	\item Tackling problems of having very similar data from expert and non expert.
-	\item Applying concept to other methods that might require different treatment.
-\end{itemize}
-
-
-\section{RSS citations}
-
-Please make sure to include \verb!natbib.sty! and to use the
-\verb!plainnat.bst! bibliography style. \verb!natbib! provides additional
-citation commands, most usefully \verb!\citet!. For example, rather than the
-awkward construction 
-
-{\small
-\begin{verbatim}
-\cite{kalman1960new} demonstrated...
-\end{verbatim}
-}
-
-\noindent
-rendered as ``\cite{kalman1960new} demonstrated...,''
-or the
-inconvenient 
-
-{\small
-\begin{verbatim}
-Kalman \cite{kalman1960new} 
-demonstrated...
-\end{verbatim}
-}
-
-\noindent
-rendered as 
-``Kalman \cite{kalman1960new} demonstrated...'', 
-one can
-write 
-
-{\small
-\begin{verbatim}
-\citet{kalman1960new} demonstrated... 
-\end{verbatim}
-}
-\noindent
-which renders as ``\citet{kalman1960new} demonstrated...'' and is 
-both easy to write and much easier to read.
-  
-\subsection{RSS Hyperlinks}
-
-This year, we would like to use the ability of PDF viewers to interpret
-hyperlinks, specifically to allow each reference in the bibliography to be a
-link to an online version of the reference. 
-As an example, if you were to cite ``Passive Dynamic Walking''
-\cite{McGeer01041990}, the entry in the bibtex would read:
-
-{\small
-\begin{verbatim}
-@article{McGeer01041990,
-  author = {McGeer, Tad}, 
-  title = {\href{http://ijr.sagepub.com/content/9/2/62.abstract}{Passive Dynamic Walking}}, 
-  volume = {9}, 
-  number = {2}, 
-  pages = {62-82}, 
-  year = {1990}, 
-  doi = {10.1177/027836499000900206}, 
-  URL = {http://ijr.sagepub.com/content/9/2/62.abstract}, 
-  eprint = {http://ijr.sagepub.com/content/9/2/62.full.pdf+html}, 
-  journal = {The International Journal of Robotics Research}
-}
-\end{verbatim}
-}
-\noindent
-and the entry in the compiled PDF would look like:
-
-\def\tmplabel#1{[#1]}
-
-\begin{enumerate}
-\item[\tmplabel{1}] Tad McGeer. \href{http://ijr.sagepub.com/content/9/2/62.abstract}{Passive Dynamic
-Walking}. {\em The International Journal of Robotics Research}, 9(2):62--82,
-1990.
-\end{enumerate}
+	We have demonstrated the merits of allowing IRL algorithms to go beyond expert demonstrations to demonstrations of varying value. We further demonstrated an instance of such a modified algorithm that can learn better and in fewer iterations than its original counterpart. Our immediate future work involves applying these methods to more realistic scenarios such as simulated and real life robots. Another very interesting direction that we will pursue is how the similarity between the expert and taboo datasets affect the ability to learn. Finally we would like to extend our modifications to other popular IRL algorithms.
+%Proof of concept that failed trajectories contain valuable information for learning in many fronts. 
+%Further work includes:
+%\begin{itemize}
+%	\item Tackling problems of having very similar data from expert and non expert.
+%	\item Applying concept to other methods that might require different treatment.
+%\end{itemize}
 %
-where the title of the article is a link that takes you to the article on IJRR's website. 
-
-
-Linking cited articles will not always be possible, especially for
-older articles. There are also often several versions of papers
-online: authors are free to decide what to use as the link destination
-yet we strongly encourage to link to archival or publisher sites
-(such as IEEE Xplore or Sage Journals).  We encourage all authors to use this feature to
-the extent possible.
-\section*{Acknowledgments}
+%
+%\section{RSS citations}
+%
+%Please make sure to include \verb!natbib.sty! and to use the
+%\verb!plainnat.bst! bibliography style. \verb!natbib! provides additional
+%citation commands, most usefully \verb!\citet!. For example, rather than the
+%awkward construction 
+%
+%{\small
+%\begin{verbatim}
+%\cite{kalman1960new} demonstrated...
+%\end{verbatim}
+%}
+%
+%\noindent
+%rendered as ``\cite{kalman1960new} demonstrated...,''
+%or the
+%inconvenient 
+%
+%{\small
+%\begin{verbatim}
+%Kalman \cite{kalman1960new} 
+%demonstrated...
+%\end{verbatim}
+%}
+%
+%\noindent
+%rendered as 
+%``Kalman \cite{kalman1960new} demonstrated...'', 
+%one can
+%write 
+%
+%{\small
+%\begin{verbatim}
+%\citet{kalman1960new} demonstrated... 
+%\end{verbatim}
+%}
+%\noindent
+%which renders as ``\citet{kalman1960new} demonstrated...'' and is 
+%both easy to write and much easier to read.
+%  
+%\subsection{RSS Hyperlinks}
+%
+%This year, we would like to use the ability of PDF viewers to interpret
+%hyperlinks, specifically to allow each reference in the bibliography to be a
+%link to an online version of the reference. 
+%As an example, if you were to cite ``Passive Dynamic Walking''
+%\cite{McGeer01041990}, the entry in the bibtex would read:
+%
+%{\small
+%\begin{verbatim}
+%@article{McGeer01041990,
+%  author = {McGeer, Tad}, 
+%  title = {\href{http://ijr.sagepub.com/content/9/2/62.abstract}{Passive Dynamic Walking}}, 
+%  volume = {9}, 
+%  number = {2}, 
+%  pages = {62-82}, 
+%  year = {1990}, 
+%  doi = {10.1177/027836499000900206}, 
+%  URL = {http://ijr.sagepub.com/content/9/2/62.abstract}, 
+%  eprint = {http://ijr.sagepub.com/content/9/2/62.full.pdf+html}, 
+%  journal = {The International Journal of Robotics Research}
+%}
+%\end{verbatim}
+%}
+%\noindent
+%and the entry in the compiled PDF would look like:
+%
+%\def\tmplabel#1{[#1]}
+%
+%\begin{enumerate}
+%\item[\tmplabel{1}] Tad McGeer. \href{http://ijr.sagepub.com/content/9/2/62.abstract}{Passive Dynamic
+%Walking}. {\em The International Journal of Robotics Research}, 9(2):62--82,
+%1990.
+%\end{enumerate}
+%%
+%where the title of the article is a link that takes you to the article on IJRR's website. 
+%
+%
+%Linking cited articles will not always be possible, especially for
+%older articles. There are also often several versions of papers
+%online: authors are free to decide what to use as the link destination
+%yet we strongly encourage to link to archival or publisher sites
+%(such as IEEE Xplore or Sage Journals).  We encourage all authors to use this feature to
+%the extent possible.
+%\section*{Acknowledgments}
 
 %% Use plainnat to work nicely with natbib. 
 
