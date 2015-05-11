@@ -28,7 +28,7 @@
 \title{Inverse Reinforcement Learning from Failure}
 
 % You will get a Paper-ID when submitting a pdf file to the conference system
-\author{Kyriacos Shiarlis, Joao Messias, Maarten Van Someren, Shimon Whiteson}
+\author{Kyriacos Shiarlis, Jo\~{a}o Messias, Maarten van Someren, Shimon Whiteson}
 
 %\author{\authorblockN{Michael Shell}
 %\authorblockA{School of Electrical and\\Computer Engineering\\
@@ -79,8 +79,11 @@ traditional IRL, we present a method that can utilise information from failed or
 
 \IEEEpeerreviewmaketitle
 
-\section{Introduction and Motivation}
-Inverse reinforcement Learning (IRL) has been subject to a significant amount of research since its introduction to the computer science research community by Ng and Russel \cite{ng2000algorithms}. The problem involves an agent or \emph{apprentice} acting in an environment modelled by a Markov Decision Process (MDP) for which the reward function is not available but samples from the policy of an \emph{expert} performing the decision-making, are given instead. An IRL algorithm tries to find a reward function that allows the apprentice to exhibit similar behaviour as the expert and generalises well to situations for which data is not available. The IRL formulation is particularly appealing in Markovian Decision Tasks for which the actual reward function is very difficult to define explicitly, but examples of correct behaviour can be generated instead. For this exact reason the main applications of the method have been in simulated car driving[] and socially appropriate navigation\cite{henry2010learning}\cite{vasquez2014inverse}. To achieve this researchers have  adapted concepts from the wider Machine Learning community, like maximum entropy\cite{ziebart2008maximum} and bayesian formulations \cite{ramachandran2007bayesian}, structured classification \cite{ratliff2006maximum}, boosting \cite{ratliff2007boosting} and gaussian processes\cite{levine2011nonlinear} with varying degrees of success.\\
+\section{Introduction}
+In Inverse Reinforcement Learning (IRL) \cite{ng2000algorithms}, an \emph{apprentice} aims to learn a policy for acting in an environment modelled by a Markov Decision Process (MDP) for which the reward function is not available but samples from the policy of an \emph{expert} performing the task are given instead. An IRL algorithm tries to find a reward function that allows the apprentice to exhibit behaviour  that is similar to the expert's and generalises well to situations for which data is not available. The IRL formulation is particularly appealing in MDPs for which the actual reward function is difficult to define explicitly, but examples of correct behaviour can be generated instead. For this exact reason the main applications of the method have been in simulated car driving[] and socially appropriate navigation\cite{henry2010learning,vasquez2014inverse}. Existing IRL methods leverage concepts from the wider Machine Learning community, like maximum entropy \cite{ziebart2008maximum} and Bayesian formulations \cite{ramachandran2007bayesian}, structured classification \cite{ratliff2006maximum}, boosting \cite{ratliff2007boosting} and Gaussian processes \cite{levine2011nonlinear}.
+
+Existing IRL algorithms learn only from succesful trajectories, i.e., data gathered by an expert performing the task well.  This is a consequence of a key motivation for IRL, that it allows learning tasks in which it is too dangerous for a learning agent to explore.
+
 
 Despite its appealing applications and encouraging research the IRL framework still suffers from a number of important theoretical and practical drawbacks. Firstly, because of their iterative nature most known methods require solving an MDP under the current reward before an update. For large state spaces, Markov decision processes becomes prohibitive to evaluate once, let alone a number of times. Secondly, most algorithms are non-convex in nature especially if the dynamics of the system are non-deterministic and ill posed how do I make the differentiation? More practical issues include generalisation, if the observed expert's behaviour is too limited, it is very hard to generalise to new parts of the state space, especially if this is too large. In addition, since the expert can be expected to avoid punishing states, information about the reward in these states reaches us only implicitly, making generalisation of the reward function an even harder task. \\
 
