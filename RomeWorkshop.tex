@@ -1,8 +1,9 @@
 \documentclass[conference]{IEEEtran}
 \usepackage{times}
-
+\usepackage{multirow}
 \usepackage{amsmath}
 \usepackage{amsopn}
+\usepackage{color}
 \DeclareMathOperator*{\argmin}{\arg\!\min} 
 \DeclareMathOperator*{\argmax}{\arg\!\max} 
 
@@ -30,7 +31,7 @@
 \title{Inverse Reinforcement Learning from Failure}
 
 % You will get a Paper-ID when submitting a pdf file to the conference system
-\author{Kyriacos Shiarlis, Jo\~{a}o Messias, Maarten van Someren, Shimon Whiteson}
+\author{Kyriacos Shiarlis, Jo\~{a}o Messias, Maarten van Someren, and Shimon Whiteson}
 
 %\author{\authorblockN{Michael Shell}
 %\authorblockA{School of Electrical and\\Computer Engineering\\
@@ -92,7 +93,8 @@ In this paper, we present the first IRL algorithm that can learn from both succe
 
 To derive an IRL algorithm for learning from failure, we start from the state-of-the-art method of Maximum Causal Entropy Inverse Reinforcement Learning \cite{ziebart2008maximum}.  This approach starts by formulating a constrained optimization problem that seeks a reward function yielding trajectories consistent with those of the expert.  We formulate a new constrained optimization problem with additional constraints that require the resulting trajectories to also be maximally different from the failed trajectories.  Then, by appliying the method of Lagrangian multipliers, we produce our new method, which learns from both succesful and failed trajectories.
 
-Our empirical results...
+\sw{Our empirical results...}
+
 
 
 % Despite its appealing applications and encouraging research the IRL framework still suffers from a number of important theoretical and practical drawbacks. Firstly, because of their iterative nature most known methods require solving an MDP under the current reward before an update. For large state spaces, Markov decision processes becomes prohibitive to evaluate once, let alone a number of times. Secondly, most algorithms are non-convex in nature especially if the dynamics of the system are non-deterministic and ill posed how do I make the differentiation? More practical issues include generalisation, if the observed expert's behaviour is too limited, it is very hard to generalise to new parts of the state space, especially if this is too large. In addition, since the expert can be expected to avoid punishing states, information about the reward in these states reaches us only implicitly, making generalisation of the reward function an even harder task. \\
@@ -105,53 +107,57 @@ Our empirical results...
 
 
 \section{Method}
-	In his PhD thesis Ziebart after introducing the principle of Maximum Causal Entropy he applies it to generalised Inverse Optimal Control(IOC) and IRL by assuming an agent acting in an MDP. The model is very powerful, easy to apply and results in a convex optimisation problem. In its heart, the algorithm tries to find the stochastic policy $\pi(a|s)$ that maximises the causal entropy of an influence model of a certain time duration $T$ while constrained to match certain statistics from the expert dataset $\mathcal{D}$. These statistics are called the empirical feature expectations $\widetilde{\Phi}_{\mathcal{D}}$. The optimisation is solved using Lagrangian multipliers and results in a procedure very similar to most IRL methods. A policy
-	is found under the current reward function using a 'soft' version of the Bellman equations, the feature expectations of the model are then calculated from the initial  states in the data, and finally a reward update step based on the comparison between the empirical and model feature expectations.
+Ziebart proposed an IRL method based on the principle of Maximum Causal Entropy.  The main idea is to find stochastic policy $\pi(a|s)$ that maximises the causal entropy of an influence model of a certain time duration $T$ while constrained to match certain statistics from the expert dataset $\mathcal{D}$. These statistics are called the \emph{empirical feature expectations} $\widetilde{\Phi}_{\mathcal{D}}$. This task is formalized as a constrained convex optimization problem which is then addressed using the method of Lagrangian multipliers.  
+%
+Each setting of these multipliers defines a specific reward function, which is optimized as follows. A policy is found under the current reward function using a Bellman equation with a softmax instead of a max.  The feature expectations of the model are then calculated from $\mathcal{D}$. Finally, the multipliers are updated based on the comparison between the empirical and model feature expectations.
 
-	Our method directly modifies this optimization process in two significant ways. Firstly using a set of slacks we call $\zeta^+$ and $\zeta^-$ we relax the feature matching constraint between the emodel and the expert data. Instead we demand that the value of these slacks is minimised. Secondly we intoduce a second set of constraints that aim to create disimilarity between the model feature expecations and those of a dataset of failed demonstrations $\widetilde{\Phi}_{\mathcal{D}_b}$. This is done through a second set of slacks $\alpha^+$ and $\alpha^-$ that we aim to \emph{maximise}. These modifications results in the following optimisation problem.
+Our method extends this approach in two key ways.  First, we relax the constraint that the model  exactly match $\widetilde{\Phi}_{\mathcal{D}}$ by introducing slack variables $\zeta^+$ and $\zeta^-$.  Second, we introduce new constraints that enforce dissimilarity between the model and $\widetilde{\Phi}_{\mathcal{D}_b}$, the feature expectations of the failed demonstrations. This is done through a second set of slacks $\alpha^+$ and $\alpha^-$. The resulting constrained optimization problem is:
 	
 	\begin{equation*}
 	\argmax_{\pi(a,s),\alpha^+_k ,\alpha^-_k ,\zeta^+_k, \zeta^-_k} H(\mathbf{A}^T||\mathbf{S}^T) - \sum_k\big(C(\zeta^+_k + \zeta^-_k)  -D(\alpha^+_k  \alpha^-_k)\big)
 \end{equation*}
+Subject to:
 \begin{equation*}
-	\widetilde{\Phi}_{\mathcal{D},k}-\Phi_{\pi,s_0,k}   = \zeta^+_k  - \zeta^-_k \quad \forall k \label{eq:good_ineq}
+  s\widetilde{\Phi}_{\mathcal{D},k}-\Phi_{\pi,s_0,k}   = \zeta^+_k  - \zeta^-_k \quad \forall k, \label{eq:good_ineq}
 \end{equation*}
 \begin{equation*}
-	\widetilde{\Phi}_{\mathcal{D}_b,k}-\Phi_{\pi,s_0,k}  = \alpha^+_k-\alpha^-_k \quad \forall k \label{eq:bad_ineq}
+	\widetilde{\Phi}_{\mathcal{D}_b,k}-\Phi_{\pi,s_0,k}  = \alpha^+_k-\alpha^-_k \quad \forall k, \label{eq:bad_ineq}
 \end{equation*}
 \begin{equation*}
-	-\zeta^+_k \leq 0 \quad \text{and} \quad -\zeta^-_k \leq 0 \quad \forall k
+	-\zeta^+_k \leq 0 \quad \text{and} \quad -\zeta^-_k \leq 0 \quad \forall k,
 \end{equation*}
 \begin{equation*}
-	-\alpha^+_k \leq 0 \quad \text{and} \quad -\alpha^-_k \leq 0 \quad \forall k
+	-\alpha^+_k \leq 0 \quad \text{and} \quad -\alpha^-_k \leq 0 \quad \forall k,
 \end{equation*}
 \begin{equation*}
-	\alpha^-_k \alpha^+_k = 0 \quad \forall k  \label{eq:quadratic}
+	\alpha^-_k \alpha^+_k = 0 \quad \forall k,  \label{eq:quadratic}
 \end{equation*}
 \begin{equation*}
-	\text{and:   }\sum_aP(a|s)  = 1 \quad \forall s  
+\sum_aP(a|s)  = 1 \quad \forall s,  
 \end{equation*}
 \begin{equation*}
-	\text{and:   }P(a|s)  > 0 \quad \forall s,a  
+	\text{and   }P(a|s)  > 0 \quad \forall s,a.  
 \end{equation*}
 
+\sw{Every variable used above needs to be defined.  We should also say a few words to the effect that we use this formulation to derive update rules for all the multipliers but that we omit the details due to lack of space.}
 
 \section{Results \& Discussion}
-We perform experiments on "moving obstacle gridworld". In much the same spirit as the original toy problem an agent tries to reach a target square (T) of very high reward,
-while avoiding some squares of negative reward(N). The only difference is that the (N)  squares are moving in different directions at every time step. This was done to closer simulate robotic navigation towards a target while avoiding a moving person. For proof-of-concept purposes the test problem is fully deterministic. We demonstrate the performance of our method by directly comparing it to the original algorithm as described by Ziebart.
-%
-%To begin comparison between the two methods we first need some synthetic data from the problem, or at least the two quantities $\widetilde{\Phi}_{\mathcal{D},k}$ and $\widetilde{\Phi}_{\mathcal{D}_b,k}$ for the good and bad datasets repsectively. These can be generated very easily using the forward algorithm also given by Ziebart, using a policy P(a|s), model dynamics and an initial state distribution $b_{0,train}$. The policies in turn arise from two reward functions $R_e$ for the expert and $R_t$ for the taboo-agent. 
 
-Firstly we generate synthetic feature expectations $\widetilde{\Phi}_{\mathcal{D},k}$ for the expert and $\widetilde{\Phi}_{\mathcal{D}_b,k}$ for the taboo agent as they arise by allowing these agents to start from an initial state distribution $b_{0,train}$ and proceed for $T$ timesteps under their 'soft' optimal policies that result from their respective reward functions $R_e$ and $R_t$. Using this data we train two apprentices, one that only considers data from the expert, using the original algorithm and another that considers both sets of data, using our extended method. The evaluation of the two algorithms is done using a test distribution of initial states $b_{0,test}$ in order to assess the ability of the learned Reward functions to generalise to new initial conditions. The evaluation is done based on three metrics namely:
+We compared the performance of our method to Ziebart's original IRL method on a simulated robot control task that requires avoiding moving obstacles.  In particular, the robot aims to reach a target state (T) of very high reward,
+while avoiding some states of negative reward (N). The (N) states change throughout time.
 
-		We evaluate the toy problem based on three initial criteria:
-			\begin{itemize}
-				\item The value accumulated by the apprentice in T timesteps starting from $b_{0,test}$ when evaluated on the experts reward function, $R_e$. If the apprentice achieves similar Value accumulation as the expert, it means that the trajectories executed by the two agent's are similar.
+To set up the experiments, we defined two reward functions, $R_e$ and $R_t$, both of which are unknown to the learning algorithms.  $R_e$, the expert's reward function, is the true reward function while $R_t$ is the reward function used by a \emph{taboo agent} that generates the failed trajectories. \sw{How exactly is $R_t$ defined?}  Using these reward functions, we generate the feature expectations $\widetilde{\Phi}_{\mathcal{D},k}$ and $\widetilde{\Phi}_{\mathcal{D}_b,k}$ by allowing agents using soft-optimal policies w.r.t.\ $R_e$ and $R_t$ to start from an initial state distribution $b_{0,train}$ and proceed for $T$ timesteps.  Based on this data, we train two apprentices, one using Ziebart's method and one using ours.  Finally, we evaluate performance on a test distribution of initial states $b_{0,test}$. 
 
-				\item The value accumulated by the apprentice in N timesteps from a test initial state distribution $b_{0,test}$ when evaluated on the initial taboo agents reward function $R_t$. The less Value is accumulated here, the better since we want to perform badly on the taboo-agents reward function.
-				\end{itemize}
-	
-	Figure \ref{fig:res} demonstrates the results from our experiments. In \ref{fig:res_a} we can see that our algorithm (blue) acumulates as much value as the expert (black line) while the original algorithm (red) does not converge in the given amount of iterations. Turning to \ref{fig:res_b}, the green line represents the value accumulated by the expert based on the taboo agents reward function. We can see that our algorithm can do even worse than the expert on the taboo agents reward while original algorithm doesn't.
+% The evaluation is done based on three metrics namely:
+
+% 		We evaluate the toy problem based on three initial criteria:
+% 			\begin{itemize}
+% 				\item The value accumulated by the apprentice in T timesteps starting from $b_{0,test}$ when evaluated on the experts reward function, $R_e$. If the apprentice achieves similar Value accumulation as the expert, it means that the trajectories executed by the two agent's are similar.
+
+% 				\item The value accumulated by the apprentice in N timesteps from a test initial state distribution $b_{0,test}$ when evaluated on the initial taboo agents reward function $R_t$. The less Value is accumulated here, the better since we want to perform badly on the taboo-agents reward function.
+% 				\end{itemize}
+
+Figure \ref{fig:res}a shows the average value, with respect to $R_e$, of the policies found by the two methods, at each iteration.  Our approach is able to ultimately match the value of the expert's policy while Ziebart's method plateaus lower.  Figure \ref{fig:res}b also shows the average value of the two method bit with respect to $R_t$.  In this case, lower values are better as they correspond to performaning badly on a bad reward function.  The results indicate that our method does a better job of minimizing value with respect to $R_t$ than Ziebart's method.  This figure also shows the performance of the expert's policy with respect to $R_t$ (green).  Unlike Ziebart's method, our method is able to minimize value with respect to $R_t$ even better than the expert's policy.
 
 \begin{figure}[t]
   \centering
@@ -165,15 +171,14 @@ Firstly we generate synthetic feature expectations $\widetilde{\Phi}_{\mathcal{D
         \caption{Taboo Reward Function}
     \label{fig:res_b}
 \end{subfigure}
-  \caption{Results from Moving obstacle gridworld experiments. Our algorithm (blue) surpasses the original (red) in both imitating the expert and not imitating the taboo agent}
+  \caption{Results from the moving obstacle avoidance task.  Learning from failure (blue) yields behavior that is more similar to that of the expert and more dissimilar to that of the taboo agent than Ziebart's IRL method (red). \sw{Label x-axis.}}
   \label{fig:res}
 \vspace{-4mm}
 \end{figure}
 
 
-These results demonstrate that taking into account failed demonstrations of a task will allow the apprentice to generalise better to new initial states and learn in fewer iterations than previously possible.
+These results demonstrate that taking into account failed demonstrations of a task can allow an apprentice to generalise better to new initial states and learn in fewer iterations than previously possible.  In the future, we aim to apply this method to more realistiic scenarios such as those involving real robots.  We also hope to examine how the similarity between the expert and taboo datasets affect the ability to learn. Finally, we would like to extend our modifications to other popular IRL algorithms.
 
-	We have demonstrated the merits of allowing IRL algorithms to go beyond expert demonstrations to demonstrations of varying value. We further demonstrated an instance of such a modified algorithm that can learn better and in fewer iterations than its original counterpart. Our immediate future work involves applying these methods to more realistic scenarios such as simulated and real life robots. Another very interesting direction that we will pursue is how the similarity between the expert and taboo datasets affect the ability to learn. Finally we would like to extend our modifications to other popular IRL algorithms.
 %Proof of concept that failed trajectories contain valuable information for learning in many fronts. 
 %Further work includes:
 %\begin{itemize}
