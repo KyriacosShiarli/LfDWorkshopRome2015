@@ -83,7 +83,7 @@ traditional IRL, we present a method that can utilise information from failed or
 \IEEEpeerreviewmaketitle
 
 \section{Introduction}
-In Inverse Reinforcement Learning (IRL) \cite{ng2000algorithms}, an \emph{apprentice} aims to learn a policy for acting in an environment modelled by a Markov Decision Process (MDP) for which the reward function is not available but samples from the policy of an \emph{expert} performing the task are given instead. An IRL algorithm tries to find a reward function that allows the apprentice to exhibit behaviour  that is similar to the expert's and generalises well to situations for which data is not available. The IRL formulation is particularly appealing in MDPs for which the actual reward function is difficult to define explicitly, but examples of correct behaviour can be generated instead. For this exact reason the main applications of the method have been in simulated car driving [] and socially appropriate navigation \cite{henry2010learning,vasquez2014inverse}. Existing IRL methods leverage concepts from the wider Machine Learning community, like maximum entropy \cite{ziebart2008maximum} and Bayesian formulations \cite{ramachandran2007bayesian}, structured classification \cite{ratliff2006maximum}, boosting \cite{ratliff2007boosting} and Gaussian processes \cite{levine2011nonlinear}.
+In Inverse Reinforcement Learning (IRL) \cite{ng2000algorithms}, an \emph{apprentice} aims to learn a policy for acting in an environment modelled by a Markov Decision Process (MDP) for which the reward function is not available but samples from the policy of an \emph{expert} performing the task are given instead. An IRL algorithm tries to find a reward function that allows the apprentice to exhibit behaviour  that is similar to the expert's and generalises well to situations for which data is not available. The IRL formulation is particularly appealing in MDPs for which the actual reward function is difficult to define explicitly, but examples of correct behaviour can be generated instead. For this exact reason the main applications of the method have been in simulated car driving \cite{abbeel2004apprenticeship} and socially appropriate navigation \cite{henry2010learning,vasquez2014inverse}. Existing IRL methods leverage concepts from the wider Machine Learning community, like maximum entropy \cite{ziebart2008maximum} and Bayesian formulations \cite{ramachandran2007bayesian}, structured classification \cite{ratliff2006maximum}, boosting \cite{ratliff2007boosting} and Gaussian processes \cite{levine2011nonlinear}.
 
 Existing IRL algorithms learn only from succesful trajectories, i.e., data gathered by an expert performing the task well.  This is a consequence of a key motivation for IRL, that it allows learning tasks in which it is too dangerous for a learning agent to explore.  For example, since it is not safe to let a learning agent fly (and probably crash) a helicopter while it is learning, data is gathered by an expert pilot whom the agent then learns to mimic. 
 
@@ -91,9 +91,8 @@ However, in many realistic scenarios, failed trajectories are also readily avail
 
 In this paper, we present the first IRL algorithm that can learn from both successful and failed trajectories.  In doing so, we address a key difficulty in IRL: the problem is typically underconstrained since many reward functions are consistent with the expert's behavior.  By making use of failed trajectories, our method reduces this ambiguity, resulting in faster and better learning.
 
-To derive an IRL algorithm for learning from failure, we start from the state-of-the-art method of Maximum Causal Entropy Inverse Reinforcement Learning \cite{ziebart2008maximum}.  This approach starts by formulating a constrained optimization problem that seeks a reward function yielding trajectories consistent with those of the expert.  We formulate a new constrained optimization problem with additional constraints that require the resulting trajectories to also be maximally different from the failed trajectories.  Then, by appliying the method of Lagrangian multipliers, we produce our new method, which learns from both succesful and failed trajectories.
-
-\sw{Our empirical results...}
+To derive an IRL algorithm for learning from failure, we start from the state-of-the-art method of Maximum Causal Entropy Inverse Reinforcement Learning \cite{ziebart2008maximum}.  This approach starts by formulating a constrained optimization problem that seeks a reward function yielding trajectories consistent with those of the expert.  We formulate a new optimization problem with additional constraints that require the resulting trajectories to also be maximally different from the failed trajectories.  Then, by applying the method of Lagrangian multipliers, we produce our new method, which learns from both succesful and failed trajectories.
+	Our empirical results show that utilising failed trajectories can result in learning  a reward function that is closer to that of the expert, in fewer iterations.
 
 
 
@@ -107,7 +106,7 @@ To derive an IRL algorithm for learning from failure, we start from the state-of
 
 
 \section{Method}
-Ziebart proposed an IRL method based on the principle of Maximum Causal Entropy.  The main idea is to find stochastic policy $\pi(a|s)$ that maximises the causal entropy of an influence model of a certain time duration $T$ while constrained to match certain statistics from the expert dataset $\mathcal{D}$. These statistics are called the \emph{empirical feature expectations} $\widetilde{\Phi}_{\mathcal{D}}$. This task is formalized as a constrained convex optimization problem which is then addressed using the method of Lagrangian multipliers.  
+In \cite{ziebart2010modelingthesis} Ziebart proposes an IRL method based on the principle of Maximum Causal Entropy.  The main idea is to find stochastic policy $\pi(a,s)$ that maximises the causal entropy $H(\mathbf{A}^T||\mathbf{S}^T)$ of all actions $\mathbf{A}^T$ in a decision time horizon $T$ given the states $\mathbf{S}^T$, while constrained to match certain statistics from the expert dataset $\mathcal{D}$. These statistics are called the \emph{empirical feature expectations} $\widetilde{\Phi}_{\mathcal{D}}$. This task is formalized as a constrained convex optimization problem which is then addressed using the method of Lagrangian multipliers.  
 %
 Each setting of these multipliers defines a specific reward function, which is optimized as follows. A policy is found under the current reward function using a Bellman equation with a softmax instead of a max.  The feature expectations of the model are then calculated from $\mathcal{D}$. Finally, the multipliers are updated based on the comparison between the empirical and model feature expectations.
 
@@ -118,7 +117,7 @@ Our method extends this approach in two key ways.  First, we relax the constrain
 \end{equation*}
 Subject to:
 \begin{equation*}
-  s\widetilde{\Phi}_{\mathcal{D},k}-\Phi_{\pi,s_0,k}   = \zeta^+_k  - \zeta^-_k \quad \forall k, \label{eq:good_ineq}
+  \widetilde{\Phi}_{\mathcal{D},k}-\Phi_{\pi,s_0,k}   = \zeta^+_k  - \zeta^-_k \quad \forall k, \label{eq:good_ineq}
 \end{equation*}
 \begin{equation*}
 	\widetilde{\Phi}_{\mathcal{D}_b,k}-\Phi_{\pi,s_0,k}  = \alpha^+_k-\alpha^-_k \quad \forall k, \label{eq:bad_ineq}
@@ -133,20 +132,16 @@ Subject to:
 	\alpha^-_k \alpha^+_k = 0 \quad \forall k,  \label{eq:quadratic}
 \end{equation*}
 \begin{equation*}
-\sum_aP(a|s)  = 1 \quad \forall s,  
+\sum_aP(a|s)  = 1 \quad \forall s,   \quad \text{and} \quad P(a|s)  > 0 \quad \forall s,a.  
 \end{equation*}
-\begin{equation*}
-	\text{and   }P(a|s)  > 0 \quad \forall s,a.  
-\end{equation*}
-
-\sw{Every variable used above needs to be defined.  We should also say a few words to the effect that we use this formulation to derive update rules for all the multipliers but that we omit the details due to lack of space.}
+Where $s$ and $a$ are the individual states and actions considered in our MDP model. D and C are constants that act on the slacks $\alpha$ and $\zeta$ respectively and determine how much we value maximising or minimising them. The optimisation is handled very much like the original algorithm, using the method of lagrangian multipliers. The Lagrangian is first maximised with respect to the variables in the objective function to obtain a Dual. We then update the Lagrange multipliers in by taking a step in the direction that maximises this Dual.
 
 \section{Results \& Discussion}
 
 We compared the performance of our method to Ziebart's original IRL method on a simulated robot control task that requires avoiding moving obstacles.  In particular, the robot aims to reach a target state (T) of very high reward,
 while avoiding some states of negative reward (N). The (N) states change throughout time.
-
-To set up the experiments, we defined two reward functions, $R_e$ and $R_t$, both of which are unknown to the learning algorithms.  $R_e$, the expert's reward function, is the true reward function while $R_t$ is the reward function used by a \emph{taboo agent} that generates the failed trajectories. \sw{How exactly is $R_t$ defined?}  Using these reward functions, we generate the feature expectations $\widetilde{\Phi}_{\mathcal{D},k}$ and $\widetilde{\Phi}_{\mathcal{D}_b,k}$ by allowing agents using soft-optimal policies w.r.t.\ $R_e$ and $R_t$ to start from an initial state distribution $b_{0,train}$ and proceed for $T$ timesteps.  Based on this data, we train two apprentices, one using Ziebart's method and one using ours.  Finally, we evaluate performance on a test distribution of initial states $b_{0,test}$. 
+ 
+To set up the experiments, we defined two reward functions, $R_e$ and $R_t$, both of which are unknown to the learning algorithms.  $R_e$, the expert's reward function, is the true reward function while $R_t$ is the reward function used by a \emph{taboo agent} that generates the failed trajectories. Specifically the taboo agent attempts to approach the (N) states rather than avoid them, and has no knowledge of the target.  Using these reward functions, we generate the feature expectations $\widetilde{\Phi}_{\mathcal{D},k}$ and $\widetilde{\Phi}_{\mathcal{D}_b,k}$ by allowing agents using soft-optimal policies w.r.t.\ $R_e$ and $R_t$ to start from an initial state distribution $b_{0,train}$ and proceed for $T$ timesteps.  Based on this data, we train two apprentices, one using Ziebart's method and one using ours.  Finally, we evaluate performance on a test distribution of initial states $b_{0,test}$. 
 
 % The evaluation is done based on three metrics namely:
 
@@ -162,16 +157,16 @@ Figure \ref{fig:res}a shows the average value, with respect to $R_e$, of the pol
 \begin{figure}[t]
   \centering
   \begin{subfigure}[b]{0.5\textwidth}
-    \includegraphics[scale=0.4]{resa}
+    \includegraphics[scale=0.4]{figures/resa.png}
     \caption{Expert Reward Function}
     \label{fig:res_a}
   \end{subfigure}
   \begin{subfigure}[b]{0.5\textwidth}
-    \includegraphics[scale=0.4]{resb.png}
+    \includegraphics[scale=0.4]{figures/resb.png}
         \caption{Taboo Reward Function}
     \label{fig:res_b}
 \end{subfigure}
-  \caption{Results from the moving obstacle avoidance task.  Learning from failure (blue) yields behavior that is more similar to that of the expert and more dissimilar to that of the taboo agent than Ziebart's IRL method (red). \sw{Label x-axis.}}
+  \caption{\small{\textit{Results from the moving obstacle avoidance task.  Learning from failure (blue) yields behavior that is more similar to that of the expert and more dissimilar to that of the taboo agent than Ziebart's IRL method (red).}} }
   \label{fig:res}
 \vspace{-4mm}
 \end{figure}
