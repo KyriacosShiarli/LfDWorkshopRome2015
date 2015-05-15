@@ -87,7 +87,7 @@ In this paper, we approach the problem of Inverse Reinforcement Learning (IRL) f
 In Inverse Reinforcement Learning (IRL) \cite{ng2000algorithms}, an \emph{apprentice} aims to learn a policy for acting in an environment modelled by a Markov Decision Process (MDP) for which the reward function is not available, but samples from the policy of an \emph{expert} performing the task are given instead. An IRL algorithm tries to find a reward function that leads the apprentice to exhibit behaviour that is similar to the expert's, and that generalises well to situations for which expert data is not available. %The IRL formulation is particularly appealing in MDPs for which the actual reward function is difficult to define explicitly, but examples of correct behaviour can be generated instead. For this exact reason 
 IRL methods have been applied to simulated car driving \cite{abbeel2004apprenticeship} and socially appropriate navigation \cite{henry2010learning,vasquez2014inverse}. Existing IRL methods leverage concepts from the wider Machine Learning community, such as maximum entropy \cite{ziebart2008maximum} and Bayesian formulations \cite{ramachandran2007bayesian}, structured classification \cite{ratliff2006maximum}, boosting \cite{ratliff2007boosting} and Gaussian processes \cite{levine2011nonlinear}.
 
-Existing IRL algorithms learn only from successful trials, i.e., from data gathered by an expert performing the task well. This is consistent with the main motivation of IRL since it allows learning in tasks where the reward cannot be trivially hardcoded.  For example, the reward function that allows an agent to perform complicated manoeuvres while flying a helicopter cannot be trivially determined, but example demonstrations can be easily obtained from an expert.
+Existing IRL algorithms learn only from successful trials, i.e., from data gathered by an expert performing the task well. This is consistent with the main motivation of IRL since it allows learning in tasks where the reward cannot be trivially hard-coded.  For example, the reward function that allows an agent to perform complicated manoeuvres while flying a helicopter cannot be trivially determined, but example demonstrations can be easily obtained from an expert.
 
 %
 %Existing IRL algorithms learn only from successful trials, i.e., from data gathered by having an expert performing the task well.  This is consistent with one of the main motivations for IRL, that it allows learning in tasks in which it is too dangerous for an agent to explore.  For example, since it is not safe to let a learning agent fly (and probably crash) a helicopter while it is learning, data is first gathered by an expert pilot whom the agent then learns to mimic. 
@@ -95,9 +95,9 @@ Existing IRL algorithms learn only from successful trials, i.e., from data gathe
 
 However, in many realistic scenarios, failed trials are also readily available.  Consider for example tasks such as driving a car.  Since humans also learn this task by trial and error, demonstrations of both successful and failed behaviour are available. Moreover, although hand-coding a reward function for this task would be infeasible, labelling each trial as successful or failed is straightforward.
 
-In this paper, we present the first IRL algorithm that can learn from both successful and failed demonstrations.  In doing so, we address a key difficulty in IRL: the problem is typically under-constrained since many reward functions are consistent with the expert's behaviour.  By making use of failed trials, our method reduces this ambiguity, resulting in faster and better learning.
+In this paper, we present the first IRL algorithm that can learn from both successful and failed demonstrations.  In doing so, we address a key difficulty in IRL: the problem is typically under-constrained since many reward functions are consistent with the expert's behaviour.  By using failed trials, our method reduces this ambiguity, resulting in faster and better learning.
 
-To derive an IRL algorithm for learning from failure, we start from the state-of-the-art method of Maximum Causal Entropy Inverse Reinforcement Learning \cite{ziebart2008maximum}.  This approach starts by formulating a constrained optimization problem that seeks a reward function that yields behaviour consist with that of the expert.  We formulate a new optimisation problem with additional constraints that require the resulting behaviour to also be maximally different from the failed demonstrations. Then, by applying the method of Lagrangian multipliers, we produce our new method, which learns from both successful and failed demonstrations.
+To derive an IRL algorithm for learning from failure, we start from the state-of-the-art method of Maximum Causal Entropy Inverse Reinforcement Learning \cite{ziebart2008maximum}.  This approach starts by formulating a constrained optimisation problem that seeks a reward function that yields behaviour consist with that of the expert.  We formulate a new optimisation problem with additional constraints that require the resulting behaviour to also be maximally different from the failed demonstrations. Then, by applying the method of Lagrangian multipliers, we produce our new method, which learns from both successful and failed demonstrations.
 	Our empirical results show that utilising failed trials enables learning  a reward function that is closer to that of the expert, in fewer iterations.
 
 
@@ -112,12 +112,17 @@ To derive an IRL algorithm for learning from failure, we start from the state-of
 
 
 \section{Method}
-Ziebart proposed an IRL method based on the principle of Maximum Causal Entropy \cite{ziebart2010modelingthesis}.  The main idea is to find a stochastic policy $\pi(a,s)$ that maximises the causal entropy $H(\mathbf{A}^T||\mathbf{S}^T)$ of all actions $\mathbf{A}^T$ taken in a decision time horizon $T$, given the visited states $\mathbf{S}^T$, while constrained to match certain statistics from the expert dataset $\mathcal{D}$. These statistics are called the \emph{empirical feature expectations} $\widetilde{\Phi}_{\mathcal{D}}$. This task is formalised as a constrained convex optimisation problem which is then addressed using the method of Lagrangian multipliers.  
+Ziebart proposed an IRL method based on the principle of Maximum Causal Entropy \cite{ziebart2010modelingthesis}.  The main idea is to find a stochastic policy $\pi(a,s)$ that maximises the causal entropy $H(\mathbf{A}^T||\mathbf{S}^T)$ of all actions $\mathbf{A}^T$ taken in a time horizon $T$, given the visited states $\mathbf{S}^T$, while constrained to match certain statistics from the expert dataset $\mathcal{D}$. These statistics are called the \emph{empirical feature expectations} $\widetilde{\Phi}_{\mathcal{D}}$. This task is formalised as a constrained convex optimisation problem which is then addressed using the method of Lagrangian multipliers.  
 
 Each assignment of these multipliers defines a specific reward function, which is optimised as follows. A policy is found under the current reward function using a Bellman equation with a softmax operator instead of a maximum.  The feature expectations of the model are then calculated from $\mathcal{D}$. Finally, the multipliers are updated based on the comparison between the empirical and model feature expectations.
 
-Our method extends this approach in two key ways. First, we relax the constraint that the model must exactly match $\widetilde{\Phi}_{\mathcal{D}}$ by introducing slack variables ($\zeta^+$ and $\zeta^-$).  Second, we introduce new constraints that enforce dissimilarity between the model and $\widetilde{\Phi}_{\mathcal{D}_b}$, the empirical feature expectations of the failed demonstrations. This is done through a second set of slacks ($\alpha^+$ and $\alpha^-$). The resulting constrained optimization problem is:
-	
+Our method extends this approach in two key ways. First, we relax the constraint 
+that the model must exactly match $\widetilde{\Phi}_{\mathcal{D}}$ by 
+introducing slack variables ($\zeta^+$ and $\zeta^-$).  Second, we introduce new 
+constraints that enforce dissimilarity between the model and 
+$\widetilde{\Phi}_{\mathcal{D}_b}$, the empirical feature expectations of the 
+failed demonstrations. This is done through a second set of slacks ($\alpha^+$ 
+and $\alpha^-$). The resulting constrained optimisation problem is:
 	\begin{equation*}
 	\argmax_{\pi(a,s),\alpha^+_k ,\alpha^-_k ,\zeta^+_k, \zeta^-_k} H(\mathbf{A}^T||\mathbf{S}^T) - \sum_k\big(C(\zeta^+_k + \zeta^-_k)  -D(\alpha^+_k  \alpha^-_k)\big)
 \end{equation*}
@@ -158,24 +163,24 @@ To set up the experiments, we defined two reward functions, $R_e$ and $R_t$, bot
 % 				\item The value accumulated by the apprentice in N timesteps from a test initial state distribution $b_{0,test}$ when evaluated on the initial taboo agents reward function $R_t$. The less Value is accumulated here, the better since we want to perform badly on the taboo-agents reward function.
 % 				\end{itemize}
 
-Figure \ref{fig:res}a shows the average value, with respect to $R_e$, of the policies found by the two methods, at each iteration.  Our approach learns more quickly that Ziebart's method and  ultimately matches the value of the expert's policy, while Ziebart's method plateaus lower. Figure \ref{fig:res}b shows the average value of the two methods with respect to $R_t$.  In this case, lower values are better as they correspond to performing badly on a bad reward function.  The results indicate that our method does a better job of minimizing value with respect to $R_t$ than Ziebart's method.  This figure also shows the performance of the expert's policy with respect to $R_t$ (green). Unlike Ziebart's method, our method is able to accumulate less value with respect to $R_t$ than the expert's policy.
+Figure \ref{fig:res}a shows the average value, with respect to $R_e$, of the policies found by the two methods, at each iteration.  Our approach learns more quickly that Ziebart's method and  ultimately matches the value of the expert's policy, while Ziebart's method plateaus lower. Figure \ref{fig:res}b shows the average value of the two methods with respect to $R_t$.  In this case, lower values are better as they correspond to performing badly on a bad reward function.  The results indicate that our method does a better job of minimising value with respect to $R_t$ than Ziebart's method.  This figure also shows the performance of the expert's policy with respect to $R_t$ (green). Unlike Ziebart's method, our method is able to accumulate less value with respect to $R_t$ than the expert's policy.
 
 \begin{figure}[t]
   \hspace{-5pt}
-  \begin{subfigure}{0.22\textwidth}
+  \begin{subfigure}{0.26\textwidth}
 
     \includegraphics[scale = 0.22]{figures/resa.png}
     \caption{Expert Reward Function}
     \label{fig:res_a}
   \end{subfigure}
-  \hspace{25pt}
-  \begin{subfigure}{0.22\textwidth}
+  \hspace{-25pt}
+  \begin{subfigure}{0.26\textwidth}
 	  
     \includegraphics[scale = 0.22]{figures/resb.png}
         \caption{Taboo Reward Function}
     \label{fig:res_b}
 \end{subfigure}
-  \caption{\small{\textit{Results from the moving obstacle avoidance task.  Learning from failure (blue) yields behavior that is more similar to that of the expert and more dissimilar to that of the taboo agent than Ziebart's IRL method (red).}} }
+  \caption{\small{\textit{Results from the moving obstacle avoidance task.  Learning from failure (blue) yields behaviour that is more similar to that of the expert and more dissimilar to that of the taboo agent than Ziebart's IRL method (red).}} }
   \label{fig:res}
 \vspace{-4mm}
 \end{figure}
@@ -278,6 +283,13 @@ These results demonstrate that taking into account failed demonstrations of a ta
 %\section*{Acknowledgments}
 
 %% Use plainnat to work nicely with natbib. 
+
+\section*{Acknowledgments}
+
+This research is part of the TERESA project, which has received funding from the 
+European Union's Seventh Framework Programme for research, technological 
+development and demonstration under grant agreement no 611153.
+
 
 \bibliographystyle{plainnat}
 \bibliography{references}
