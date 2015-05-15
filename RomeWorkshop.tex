@@ -145,7 +145,7 @@ Subject to:
 \begin{equation*}
 \sum_aP(a|s)  = 1 \quad \forall s,   \quad \text{and} \quad P(a|s)  > 0 \quad \forall s,a,  
 \end{equation*}
-where $s$ and $a$ are states and actions in the MDP; $D$ and $C$ are constants that specify how much we prioritise minimising the $\zeta$ slacks versus maximising the $\alpha$ slacks. Optimisation is performed using Lagrangian multipliers, similarly to Ziebart's method. The Lagrangian is first maximised with respect to the variables in the objective function to obtain the dual. We then update the Lagrange multipliers by taking a step in the direction that maximises this dual. \sw{Since the prinal is a maximisation, shouldn't we be minimising the dual?}
+where $s$ and $a$ are states and actions in the MDP; $D$ and $C$ are constants that specify how much we prioritise minimising the $\zeta$ slacks versus maximising the $\alpha$ slacks. Optimisation is performed using Lagrangian multipliers, similarly to Ziebart's method. The Lagrangian is first maximised with respect to the variables in the objective function to obtain the dual. We then update the Lagrange multipliers by taking a step in the direction that minimises this dual.
 
 \section{Results \& Discussion}
 
